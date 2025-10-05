@@ -35,7 +35,7 @@ def buscar_en_archivos(palabra):
 def menu():
     while True:
         console.clear()
-        console.rule("[bold green]🤖 CONSULTOR IA DEL PROYECTO AURELION")
+        console.rule("[bold green]🤖 CONSULTOR DEL PROYECTO AURELION")
         console.print("[bold yellow]Selecciona una opción:\n")
 
         opciones = listar_archivos_md()
