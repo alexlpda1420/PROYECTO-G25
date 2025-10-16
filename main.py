@@ -73,27 +73,53 @@ def menu():
             console.print("[red]Opción no válida. Intenta nuevamente.")
             input()
        
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+
 def exportar_resumen():
-    """Genera un resumen automático de todos los archivos .md."""
-    resumen = "# 📌 Resumen automático del proyecto Aurelion\n\n"
+    """Genera un resumen automático estilo ejecutivo con emojis y lo exporta a MD y PDF."""
+    resumen = "# 🚀 Resumen Ejecutivo del Proyecto *Aurelion IA*\n\n"
+    resumen += "Este documento reúne los principales puntos de cada componente del proyecto, sintetizados automáticamente para facilitar una lectura rápida y estratégica.\n\n"
 
     for archivo in listar_archivos_md():
         with open(archivo, "r", encoding="utf-8") as f:
             contenido = f.readlines()
 
-        resumen += f"\n## ➤ {archivo}\n\n"
+        resumen += f"\n## 📄 {archivo}\n\n"
 
-        # Tomar solo los primeros párrafos significativos
+        agregado = False
         for linea in contenido:
             if linea.strip() and not linea.startswith("#") and len(linea) > 40:
-                resumen += f"- {linea.strip()}\n"
+                resumen += f"✅ {linea.strip()}\n"
+                agregado = True
                 break
 
+        if not agregado:
+            resumen += "⚠️ Sin contenido destacable para resumir.\n"
+
+    resumen += "\n---\n\n🧠 *Resumen generado automáticamente por el Asistente IA del Proyecto.*"
+
+    # Guardar como .md
     with open("RESUMEN_PROYECTO.md", "w", encoding="utf-8") as salida:
         salida.write(resumen)
 
-    console.print("\n✅ Archivo 'RESUMEN_PROYECTO.md' generado con éxito.")
+    # Exportar como PDF
+    pdf = canvas.Canvas("RESUMEN_PROYECTO.pdf", pagesize=A4)
+    width, height = A4
+    y = height - 40
+
+    for linea in resumen.split("\n"):
+        if y < 50:  # Nueva página si se llena
+            pdf.showPage()
+            y = height - 40
+        pdf.drawString(40, y, linea[:100])  # Corto para evitar desbordes
+        y -= 15
+
+    pdf.save()
+
+    console.print("\n✅ Archivos 'RESUMEN_PROYECTO.md' y 'RESUMEN_PROYECTO.pdf' generados con éxito 💼🚀.")
     input("\nPresiona Enter para volver al menú...")
+
 
 if __name__ == "__main__":
     menu()
