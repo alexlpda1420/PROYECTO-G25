@@ -143,32 +143,27 @@ def create_supervised_dataset(pivot_table, n_lags=PAST_MONTHS_FEATURES):
     cols_sorted = sorted(cols)
     pivot_table = pivot_table[cols_sorted]
 
-    # Si no hay suficientes meses, no se puede crear dataset
+    # Verificar que haya meses suficientes
     if len(cols_sorted) < n_lags + 1:
-        raise ValueError("No hay meses suficientes para crear features y target. "
-                         f"Se requieren al menos {n_lags + 1} meses, hay {len(cols_sorted)}.")
+        raise ValueError(f"No hay meses suficientes (necesarios {n_lags+1}, hay {len(cols_sorted)})")
 
-    # Escoger la ventana más reciente: usaremos la última ventana disponible
-    # X: las n_lags columnas previas
-    # y: la siguiente columna (la última)
-    feature_cols = cols_sorted[-(n_lags + 1):-1]  # p.ej. [-4:-1] si n_lags=3
-    target_col = cols_sorted[-1]  # último mes
+    # Selección de features y target
+    feature_cols = cols_sorted[-(n_lags + 1):-1]
+    target_col = cols_sorted[-1]
 
-    X = pivot_table[feature_cols].copy()
-    y = pivot_table[target_col].copy()
+    # Construcción de dataset supervisado
+    X = pivot_table[feature_cols].reset_index()
+    y = pivot_table[[target_col]].reset_index()
 
-    # Añadir columna id_producto (index)
-    X = X.reset_index()
-    y = y.reset_index(drop=False)
-
-    # Unir para tener id_producto con features y target
     data = pd.merge(X, y, on='id_producto', suffixes=('_feat', '_target'))
-    # Reajustar X,y
-    X_final = data[[c for c in data.columns if c not in ['id_producto', target_col]]]
-    X_final = X_final.set_index(data['id_producto'])
-    y_final = data[target_col].set_index(data['id_producto'])
+
+    # Asignación de índices correctamente
+    X_final = data[[c for c in data.columns if c not in ['id_producto', target_col]]].copy()
+    X_final.index = data['id_producto']
+    y_final = pd.Series(data[target_col].values, index=data['id_producto'], name=target_col)
 
     return X_final, y_final, feature_cols, target_col
+
 
 
 # ---------------------------
