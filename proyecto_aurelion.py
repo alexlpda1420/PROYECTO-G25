@@ -244,48 +244,112 @@ def pipeline():
 # ---------------------------
 # Simple Streamlit dashboard (opcional)
 # ---------------------------
+# ---------------------------
+# Simple Streamlit dashboard (completo)
+# ---------------------------
 def run_streamlit_app(artifacts):
     if not STREAMLIT_AVAILABLE:
         print("Streamlit no está instalado. Instala streamlit para usar el dashboard: pip install streamlit")
         return
 
-    st.title("Aurelion - Dashboard Predictivo (Frecuencia Histórica)")
-    st.markdown("Resumen rápido del dataset y predicciones de productos más demandados.")
+    st.title("📊 Aurelion - Dashboard Interactivo de Ventas y Predicción")
+    st.markdown("Visualiza las métricas clave, productos más vendidos y predicciones de demanda basadas en el modelo Random Forest.")
 
     ranking_historico = artifacts['ranking_historico']
     ranking_predicho = artifacts['ranking_predicho']
     merged = artifacts['merged']
 
-    # KPIs
+    # ---------------------------
+    # MÉTRICAS PRINCIPALES (KPIs)
+    # ---------------------------
     total_ventas = merged['cantidad'].sum()
     n_productos = merged['id_producto'].nunique()
     n_ventas = merged['id_venta'].nunique()
-    st.metric("Ventas totales (unidades)", int(total_ventas))
-    st.metric("Productos únicos", int(n_productos))
-    st.metric("Transacciones (ventas)", int(n_ventas))
+    n_clientes = merged['id_cliente'].nunique()
 
-    st.subheader("Top histórico (último mes)")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("💰 Ventas totales (unidades)", int(total_ventas))
+    col2.metric("📦 Productos únicos", int(n_productos))
+    col3.metric("🧾 Transacciones (ventas)", int(n_ventas))
+    col4.metric("👥 Clientes activos", int(n_clientes))
+
+    # ---------------------------
+    # TOP HISTÓRICO Y PREDICHO
+    # ---------------------------
+    st.subheader("🏆 Top histórico (último mes)")
     st.dataframe(ranking_historico.head(20))
 
-    st.subheader("Top predicho (próximo mes)")
+    st.subheader("🔮 Top predicho (próximo mes)")
     st.dataframe(ranking_predicho.head(20))
 
-    # Gráficos: Top 10 histórico vs predicho
+    # ---------------------------
+    # GRÁFICOS COMPARATIVOS
+    # ---------------------------
+    st.subheader("📈 Comparativa de productos más vendidos")
+
     hist_top = ranking_historico.head(10).reset_index(drop=True)
     pred_top = ranking_predicho.head(10).reset_index(drop=True)
 
-    chart_h = alt.Chart(hist_top).mark_bar().encode(
-        x='historical_quantity:Q',
-        y=alt.Y('nombre_producto:N', sort='-x')
+    chart_h = alt.Chart(hist_top).mark_bar(color='#1f77b4').encode(
+        x=alt.X('historical_quantity:Q', title='Unidades vendidas'),
+        y=alt.Y('nombre_producto:N', sort='-x', title='Producto'),
+        tooltip=['nombre_producto', 'historical_quantity']
     ).properties(title='Top 10 histórico (último mes)')
 
-    chart_p = alt.Chart(pred_top).mark_bar().encode(
-        x='predicted_quantity:Q',
-        y=alt.Y('nombre_producto:N', sort='-x')
+    chart_p = alt.Chart(pred_top).mark_bar(color='#ff7f0e').encode(
+        x=alt.X('predicted_quantity:Q', title='Unidades predichas'),
+        y=alt.Y('nombre_producto:N', sort='-x', title='Producto'),
+        tooltip=['nombre_producto', 'predicted_quantity']
     ).properties(title='Top 10 predicho (próximo mes)')
 
     st.altair_chart(chart_h, use_container_width=True)
     st.altair_chart(chart_p, use_container_width=True)
+
+    # ---------------------------
+    # CLIENTES MÁS ACTIVOS
+    # ---------------------------
+    st.subheader("👥 Clientes más activos")
+    clientes_top = (
+        merged.groupby("nombre_cliente")["cantidad"]
+        .sum()
+        .reset_index()
+        .sort_values(by="cantidad", ascending=False)
+        .head(10)
+    )
+    chart_clientes = alt.Chart(clientes_top).mark_bar(color='#2ca02c').encode(
+        x=alt.X('cantidad:Q', title='Unidades compradas'),
+        y=alt.Y('nombre_cliente:N', sort='-x', title='Cliente'),
+        tooltip=['nombre_cliente', 'cantidad']
+    ).properties(title='Top 10 clientes más activos')
+    st.altair_chart(chart_clientes, use_container_width=True)
+
+    # ---------------------------
+    # COMPARATIVA POR CATEGORÍA
+    # ---------------------------
+    if "categoria" in merged.columns:
+        st.subheader("🧮 Comparativa entre categorías")
+        categoria_sum = (
+            merged.groupby("categoria")["cantidad"]
+            .sum()
+            .reset_index()
+            .sort_values(by="cantidad", ascending=False)
+        )
+        chart_cat = alt.Chart(categoria_sum).mark_bar(color='#9467bd').encode(
+            x=alt.X('cantidad:Q', title='Unidades vendidas'),
+            y=alt.Y('categoria:N', sort='-x', title='Categoría'),
+            tooltip=['categoria', 'cantidad']
+        ).properties(title='Ventas por categoría')
+        st.altair_chart(chart_cat, use_container_width=True)
+    else:
+        st.info("No se encontró la columna 'categoria' en el dataset de productos.")
+
+    # ---------------------------
+    # NOTA FINAL
+    # ---------------------------
+    st.markdown("---")
+    st.markdown("📘 **Dashboard académico - Proyecto Aurelion** | Modelo predictivo basado en frecuencia histórica y análisis de ventas con Python + Streamlit + Altair.")
+
+    
 
 
 # ---------------------------
